@@ -12,7 +12,7 @@ jobs:
     steps:
 
       - name: Descarrega el repositori
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Descarrega el ZIP del Release
         run: |
