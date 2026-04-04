@@ -16,17 +16,30 @@ jobs:
 
       - name: Descarrega el ZIP del Release
         run: |
-          VERSION="${{ github.event.release.tag_name }}"
-          REPO="${{ github.repository }}"
-          ZIP_NAME="Configura_Konica_Mac-${VERSION}.zip"
+          # Descarrega el primer ZIP que trobi als assets del Release
+          ASSET_URL=$(curl -s \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}/assets" \
+            | python3 -c "
+          import sys, json
+          assets = json.load(sys.stdin)
+          for a in assets:
+              if a['name'].endswith('.zip') and 'Source' not in a['name']:
+                  print(a['url'])
+                  break
+          ")
+
+          echo "Asset URL: $ASSET_URL"
 
           curl -L \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/octet-stream" \
-            "https://github.com/${REPO}/releases/download/${VERSION}/${ZIP_NAME}" \
+            "$ASSET_URL" \
             -o app.zip
 
           echo "ZIP descarregat: $(du -sh app.zip)"
+          unzip -l app.zip | head -5
 
       - name: Prepara l'app i crea el DMG
         run: |
@@ -44,7 +57,7 @@ jobs:
             -o "Configura_Konica_Mac-${VERSION}.dmg"
 
           echo "DMG_PATH=Configura_Konica_Mac-${VERSION}.dmg" >> $GITHUB_ENV
-          echo "DMG creat: $(du -sh Configura_Konica_Mac-${VERSION}.dmg)"
+          ls -lh "Configura_Konica_Mac-${VERSION}.dmg"
 
       - name: Adjunta el DMG al Release
         run: |
