@@ -5,7 +5,7 @@
 [![Llicència](https://img.shields.io/badge/llicència-MIT-green.svg)](LICENSE)
 [![Comunitat](https://img.shields.io/badge/per_a-docents_de_Catalunya-orange.svg)](https://github.com/ajimen49/configura-konica-mac)
 
-Instal·lador gràfic per a macOS que configura automàticament la impressora **Konica Minolta** amb **PaperCut MF** als centres educatius de la **Generalitat de Catalunya** (infraestructura CISE).
+Instal·lador gràfic per a macOS que configura automàticament la impressora **Konica Minolta** amb **PaperCut MF** als dispositius Mac de docents i centres educatius de la **Generalitat de Catalunya** (infraestructura CISE).
 
 Sense terminal. Sense configuració manual. En menys d'un minut.
 
@@ -30,7 +30,8 @@ Sense terminal. Sense configuració manual. En menys d'un minut.
 | macOS 13 Ventura | ✅ |
 | macOS 14 Sonoma | ✅ |
 | macOS 15 Sequoia | ✅ |
-| Apple Silicon (M1/M2/M3/M4) | ✅ |
+| macOS 26 Tahoe | ✅ |
+| Apple Silicon (M1/M2/M3/M4/M5) | ✅ |
 | Intel | ✅ |
 
 ---
@@ -41,48 +42,27 @@ Abans d'executar l'instal·lador necessitaràs:
 
 | Dada | Exemple | On trobar-la |
 |---|---|---|
-| IP del servidor PaperCut | `10.241.XXX.XXX` | Coordinador TIC del centre |
-| Codi del centre educatiu | `08062869` | Intranet XTEC o coordinador TIC |
+| IP del servidor PaperCut | `10.241.XXX.XXX` | Coordinador/a digital de centre |
+| Codi del centre educatiu | `XXXXXXXX (8 dígits)` | Intranet XTEC o coordinador/a digital |
 | Contrasenya d'administrador del Mac | — | La teva pròpia |
 
 ---
 
 ## 🚀 Instal·lació
 
-### 1. Descarrega el paquet
+### 1. Descarrega el DMG
 
-Ves a [**Releases**](https://github.com/ajimen49/configura-konica-mac/releases) i descarrega `Configura_Konica_Mac-v1.0.zip`
+Ves a [**Releases**](https://github.com/ajimen49/configura-konica-mac/releases) i descarrega `Configura_Konica_Mac-v1.0.dmg`
 
-### 2. Elimina la quarantena de macOS (recomanat)
 
-Obre el Terminal i executa:
+### 2. Obre el DMG
 
-```bash
-cd ~/Downloads
-unzip Configura_Konica_Mac-v1.0.zip
-xattr -cr "Configura_Konica_Mac.app"
-```
+Fes doble clic al fitxer `.dmg` descarregat. S'obrirà una finestra amb l'app a dins.
 
-> Si saltes aquest pas, macOS mostrarà un avís la primera vegada.
-> Solució: **clic dret → Obrir → Obrir igualment**
 
-O bé fes doble clic a **`Elimina-Quarantena.command`** que trobaràs al paquet.
+### 3. Executa l'instal·lador
 
-### 3. Genera el DMG (opcional, per distribuir als companys)
-
-Des del Terminal del teu Mac:
-
-```bash
-hdiutil create \
-  -volname "Configura Konica Mac" \
-  -srcfolder Configura_Konica_Mac-v1.0/ \
-  -ov -format UDZO \
-  -o Configura_Konica_Mac-v1.0.dmg
-```
-
-### 4. Executa l'instal·lador
-
-Fes doble clic a **`Configura_Konica_Mac.app`** i segueix els passos:
+Fes doble clic a **`Configura_Konica_Mac.app`** i segueix els passos de l'assistent:
 
 ```
 ┌─────────────────────────────────────────┐
@@ -117,12 +97,14 @@ Fes doble clic a **`Configura_Konica_Mac.app`** i segueix els passos:
 > L'app no està signada amb un certificat Apple de pagament.
 
 **Solució:** Clic dret sobre l'app → **Obrir** → **Obrir igualment**
-Només apareix la **primera vegada**. O executa `Elimina-Quarantena.command` del paquet.
+Només apareix la **primera vegada**.
+
 
 ### 2. "Vol fer canvis. Introdueix la teva contrasenya"
 > Necessari per instal·lar el driver PPD al sistema.
 
 **Solució:** Introdueix la contrasenya d'administrador del Mac. Normal en qualsevol instal·lador.
+
 
 ### 3. "Vol controlar System Events. Permetre-ho?"
 > Necessari per mostrar els diàlegs de configuració.
@@ -139,8 +121,11 @@ configura-konica-mac/
 ├── README.md
 ├── LICENSE
 ├── .gitignore
+├── .github/
+│   └── workflows/
+│       └── build-dmg.yml       # Genera el DMG automàticament a cada Release
 ├── src/
-│   └── Configura_Konica_Mac.sh     # Script principal (codi font)
+│   └── Configura_Konica_Mac.sh # Script principal (codi font)
 └── releases/
     └── Configura_Konica_Mac-v1.0.zip
 ```
@@ -185,4 +170,4 @@ Distribuït sota llicència [MIT](LICENSE). Lliure per usar, modificar i redistr
 
 ---
 
-*Fet amb ❤️ per la comunitat docent de Catalunya*
+*Fet per a la comunitat docent de Catalunya*
