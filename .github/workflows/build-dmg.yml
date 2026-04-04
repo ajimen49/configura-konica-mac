@@ -1,6 +1,5 @@
 name: Construeix el DMG
 
-# S'executa automàticament quan publiques un nou Release a GitHub
 on:
   release:
     types: [published]
@@ -8,47 +7,34 @@ on:
 jobs:
   build-dmg:
     name: Crea el DMG en macOS
-    runs-on: macos-latest   # GitHub arrenca un Mac virtual real
+    runs-on: macos-latest
 
     steps:
 
-      # 1. Descarrega el codi del repositori
       - name: Descarrega el repositori
         uses: actions/checkout@v4
 
-      # 2. Descarrega el ZIP de l'app des dels assets del Release
       - name: Descarrega el ZIP del Release
         run: |
-          # Obtenir la URL del ZIP adjuntat al Release
-          ZIP_URL=$(curl -s \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/latest" \
-            | python3 -c "
-          import sys, json
-          data = json.load(sys.stdin)
-          assets = data.get('assets', [])
-          for a in assets:
-              if a['name'].endswith('.zip'):
-                  print(a['browser_download_url'])
-                  break
-          ")
-          echo "ZIP_URL=$ZIP_URL" >> $GITHUB_ENV
-          curl -L "$ZIP_URL" -o app.zip
-
-      # 3. Descomprimeix i elimina la quarantena
-      - name: Prepara l'app
-        run: |
-          unzip app.zip
-          # Eliminar atribut de quarantena (Gatekeeper)
-          xattr -cr "app-staging/Configura_Konica_Mac.app" 2>/dev/null || true
-          # Assegurar permisos d'execució
-          chmod +x "app-staging/Configura_Konica_Mac.app/Contents/MacOS/Configura_Konica_Mac"
-
-      # 4. Crea el DMG
-      - name: Crea el DMG
-        run: |
-          # Obtenir el tag de la versió (ex: v1.0)
           VERSION="${{ github.event.release.tag_name }}"
+          REPO="${{ github.repository }}"
+          ZIP_NAME="Configura_Konica_Mac-${VERSION}.zip"
+
+          curl -L \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/octet-stream" \
+            "https://github.com/${REPO}/releases/download/${VERSION}/${ZIP_NAME}" \
+            -o app.zip
+
+          echo "ZIP descarregat: $(du -sh app.zip)"
+
+      - name: Prepara l'app i crea el DMG
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+
+          unzip app.zip
+          xattr -cr "app-staging/Configura_Konica_Mac.app" 2>/dev/null || true
+          chmod +x "app-staging/Configura_Konica_Mac.app/Contents/MacOS/Configura_Konica_Mac"
 
           hdiutil create \
             -volname "Configura Konica Mac" \
@@ -57,13 +43,13 @@ jobs:
             -format UDZO \
             -o "Configura_Konica_Mac-${VERSION}.dmg"
 
-          echo "DMG_NAME=Configura_Konica_Mac-${VERSION}.dmg" >> $GITHUB_ENV
+          echo "DMG_PATH=Configura_Konica_Mac-${VERSION}.dmg" >> $GITHUB_ENV
           echo "DMG creat: $(du -sh Configura_Konica_Mac-${VERSION}.dmg)"
 
-      # 5. Adjunta el DMG al Release automàticament
       - name: Adjunta el DMG al Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ env.DMG_NAME }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "${{ env.DMG_PATH }}" \
+            --clobber
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
