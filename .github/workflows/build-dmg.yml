@@ -34,6 +34,8 @@ jobs:
             "$ASSET_URL" \
             -o app.zip
           echo "ZIP descarregat: $(du -sh app.zip)"
+          echo "Contingut del ZIP:"
+          unzip -l app.zip | grep ".app" | head -5
 
       - name: Prepara l'app i crea el DMG
         run: |
@@ -41,13 +43,20 @@ jobs:
 
           unzip app.zip
 
-          # Detectar automàticament on és l'app dins del ZIP
-          APP_PATH=$(find . -name "Configura_Konica_Mac.app" -maxdepth 3 | head -1)
+          echo "=== Estructura descomprimida ==="
+          find . -name "*.app" -maxdepth 4
+          find . -name "Configura_Konica_Mac" -maxdepth 6
+
+          APP_PATH=$(find . -name "Configura_Konica_Mac.app" -maxdepth 4 | head -1)
           APP_DIR=$(dirname "$APP_PATH")
-          echo "App trobada a: $APP_PATH"
+          EXEC_PATH="$APP_PATH/Contents/MacOS/Configura_Konica_Mac"
+
+          echo "App: $APP_PATH"
+          echo "Dir: $APP_DIR"
+          echo "Exec: $EXEC_PATH"
 
           xattr -cr "$APP_PATH" 2>/dev/null || true
-          chmod +x "$APP_PATH/Contents/MacOS/Configura_Konica_Mac"
+          chmod +x "$EXEC_PATH"
 
           hdiutil create \
             -volname "Configura Konica Mac" \
