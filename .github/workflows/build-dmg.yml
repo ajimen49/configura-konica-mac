@@ -33,40 +33,70 @@ jobs:
             -H "Accept: application/octet-stream" \
             "$ASSET_URL" \
             -o app.zip
-          echo "ZIP descarregat: $(du -sh app.zip)"
-          echo "Contingut del ZIP:"
-          unzip -l app.zip | grep ".app" | head -5
+          echo "ZIP: $(du -sh app.zip)"
 
-      - name: Prepara l'app i crea el DMG
+      - name: Descomprimeix i localitza l'app
+        run: |
+          unzip app.zip
+          APP_PATH=$(find . -name "Configura_Konica_Mac.app" -maxdepth 4 | head -1)
+          echo "APP_PATH=$APP_PATH" >> $GITHUB_ENV
+          echo "APP_DIR=$(dirname $APP_PATH)" >> $GITHUB_ENV
+          echo "App trobada: $APP_PATH"
+
+      - name: Descarrega i bundleja JRE ARM64 (Apple Silicon)
+        run: |
+          echo "Descarregant JRE ARM64..."
+          curl -L \
+            "https://api.adoptium.net/v3/binary/latest/17/ga/mac/aarch64/jre/hotspot/normal/eclipse" \
+            -o jre-arm64.tar.gz
+          echo "JRE ARM64: $(du -sh jre-arm64.tar.gz)"
+
+          mkdir -p "${{ env.APP_PATH }}/Contents/Resources/jre/arm64"
+          tar -xzf jre-arm64.tar.gz -C /tmp/jre-arm64 --strip-components=1 2>/dev/null || \
+            (mkdir -p /tmp/jre-arm64 && tar -xzf jre-arm64.tar.gz -C /tmp/jre-arm64)
+
+          # Copiar el contingut del JRE
+          JRE_HOME=$(find /tmp/jre-arm64 -name "bin" -type d | head -1 | xargs dirname)
+          cp -r "$JRE_HOME/." "${{ env.APP_PATH }}/Contents/Resources/jre/arm64/"
+          echo "JRE ARM64 bundlejat: $(du -sh ${{ env.APP_PATH }}/Contents/Resources/jre/arm64)"
+
+      - name: Descarrega i bundleja JRE x64 (Intel)
+        run: |
+          echo "Descarregant JRE x64..."
+          curl -L \
+            "https://api.adoptium.net/v3/binary/latest/17/ga/mac/x64/jre/hotspot/normal/eclipse" \
+            -o jre-x64.tar.gz
+          echo "JRE x64: $(du -sh jre-x64.tar.gz)"
+
+          mkdir -p "${{ env.APP_PATH }}/Contents/Resources/jre/x64"
+          tar -xzf jre-x64.tar.gz -C /tmp/jre-x64 --strip-components=1 2>/dev/null || \
+            (mkdir -p /tmp/jre-x64 && tar -xzf jre-x64.tar.gz -C /tmp/jre-x64)
+
+          JRE_HOME=$(find /tmp/jre-x64 -name "bin" -type d | head -1 | xargs dirname)
+          cp -r "$JRE_HOME/." "${{ env.APP_PATH }}/Contents/Resources/jre/x64/"
+          echo "JRE x64 bundlejat: $(du -sh ${{ env.APP_PATH }}/Contents/Resources/jre/x64)"
+
+      - name: Prepara permisos i crea el DMG
         run: |
           VERSION="${{ github.event.release.tag_name }}"
 
-          unzip app.zip
+          xattr -cr "${{ env.APP_PATH }}" 2>/dev/null || true
+          chmod +x "${{ env.APP_PATH }}/Contents/MacOS/Configura_Konica_Mac"
+          chmod +x "${{ env.APP_PATH }}/Contents/Resources/pc-client-mac.sh"
+          chmod +x "${{ env.APP_PATH }}/Contents/Resources/jre/arm64/bin/java" 2>/dev/null || true
+          chmod +x "${{ env.APP_PATH }}/Contents/Resources/jre/x64/bin/java" 2>/dev/null || true
 
-          echo "=== Estructura descomprimida ==="
-          find . -name "*.app" -maxdepth 4
-          find . -name "Configura_Konica_Mac" -maxdepth 6
-
-          APP_PATH=$(find . -name "Configura_Konica_Mac.app" -maxdepth 4 | head -1)
-          APP_DIR=$(dirname "$APP_PATH")
-          EXEC_PATH="$APP_PATH/Contents/MacOS/Configura_Konica_Mac"
-
-          echo "App: $APP_PATH"
-          echo "Dir: $APP_DIR"
-          echo "Exec: $EXEC_PATH"
-
-          xattr -cr "$APP_PATH" 2>/dev/null || true
-          chmod +x "$EXEC_PATH"
+          echo "Mida final de l'app: $(du -sh ${{ env.APP_PATH }})"
 
           hdiutil create \
             -volname "Configura Konica Mac" \
-            -srcfolder "$APP_DIR/" \
+            -srcfolder "${{ env.APP_DIR }}/" \
             -ov \
             -format UDZO \
             -o "Configura_Konica_Mac-${VERSION}.dmg"
 
           echo "DMG_PATH=Configura_Konica_Mac-${VERSION}.dmg" >> $GITHUB_ENV
-          ls -lh "Configura_Konica_Mac-${VERSION}.dmg"
+          echo "DMG creat: $(du -sh Configura_Konica_Mac-${VERSION}.dmg)"
 
       - name: Adjunta el DMG al Release
         run: |
