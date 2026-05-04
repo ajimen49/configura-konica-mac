@@ -16,7 +16,6 @@ jobs:
 
       - name: Descarrega el ZIP del Release
         run: |
-          # Descarrega el primer ZIP que trobi als assets del Release
           ASSET_URL=$(curl -s \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
@@ -29,29 +28,30 @@ jobs:
                   print(a['url'])
                   break
           ")
-
-          echo "Asset URL: $ASSET_URL"
-
           curl -L \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/octet-stream" \
             "$ASSET_URL" \
             -o app.zip
-
           echo "ZIP descarregat: $(du -sh app.zip)"
-          unzip -l app.zip | head -5
 
       - name: Prepara l'app i crea el DMG
         run: |
           VERSION="${{ github.event.release.tag_name }}"
 
           unzip app.zip
-          xattr -cr "app-staging/Configura_Konica_Mac.app" 2>/dev/null || true
-          chmod +x "app-staging/Configura_Konica_Mac.app/Contents/MacOS/Configura_Konica_Mac"
+
+          # Detectar automàticament on és l'app dins del ZIP
+          APP_PATH=$(find . -name "Configura_Konica_Mac.app" -maxdepth 3 | head -1)
+          APP_DIR=$(dirname "$APP_PATH")
+          echo "App trobada a: $APP_PATH"
+
+          xattr -cr "$APP_PATH" 2>/dev/null || true
+          chmod +x "$APP_PATH/Contents/MacOS/Configura_Konica_Mac"
 
           hdiutil create \
             -volname "Configura Konica Mac" \
-            -srcfolder "app-staging/" \
+            -srcfolder "$APP_DIR/" \
             -ov \
             -format UDZO \
             -o "Configura_Konica_Mac-${VERSION}.dmg"
